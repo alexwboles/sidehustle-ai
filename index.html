@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SideHustle AI — Find your hustle, launch in 30 days</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="hero">
+  <h1>SideHustle AI</h1>
+  <p class="tagline">Match your skills to a side hustle, get a 30-day launch plan, track income to your goal.</p>
+</header>
+
+<main>
+  <section class="card" id="quiz">
+    <h2>1 · What are you working with?</h2>
+    <div class="grid">
+      <div>
+        <h3>Your skills <span class="muted">(pick any)</span></h3>
+        <div id="skillChips" class="chips"></div>
+      </div>
+      <div>
+        <h3>Your interests <span class="muted">(pick any)</span></h3>
+        <div id="interestChips" class="chips"></div>
+      </div>
+    </div>
+    <div class="grid">
+      <label>Hours per week you can give
+        <input id="hours" type="number" min="1" max="80" value="6">
+      </label>
+      <label>Max startup cost
+        <select id="maxCost">
+          <option value="0">Free to start</option>
+          <option value="1">Under $100</option>
+          <option value="2" selected>Under $500</option>
+          <option value="3">$500+ is fine</option>
+        </select>
+      </label>
+    </div>
+    <div class="row">
+      <button id="matchBtn" class="primary">Find my hustles</button>
+    </div>
+    <p id="quizErrors" class="error"></p>
+  </section>
+
+  <section class="card hidden" id="results">
+    <h2>2 · Your ranked matches</h2>
+    <ol id="rankList" class="ranked"></ol>
+  </section>
+
+  <section class="card hidden" id="plan">
+    <h2>3 · 30-day launch plan <span id="planFor" class="muted"></span></h2>
+    <div id="planWeeks"></div>
+    <p class="muted"><span id="planProgress"></span></p>
+  </section>
+
+  <section class="card" id="income">
+    <h2>4 · Income tracker</h2>
+    <div class="grid">
+      <label>Monthly goal ($)
+        <input id="goal" type="number" min="0" value="500">
+      </label>
+      <div class="goalbar"><div id="goalFill"></div></div>
+    </div>
+    <p><strong id="incomeLine"></strong></p>
+    <div class="row">
+      <input id="amt" type="number" min="0" step="0.01" placeholder="Amount $">
+      <input id="note" type="text" placeholder="Note (e.g. logo design)" maxlength="60">
+      <button id="logBtn"Log income</button>
+    </div>
+    <ul id="incomeList" class="entries"></ul>
+  </section>
+
+  <section class="card" id="aiBox">
+    <h2>Optional AI brainstorm</h2>
+    <p class="muted">Paste your own OpenAI API key for custom hustle ideas beyond the bank. The key stays in your browser only and is never required.</p>
+    <div class="row">
+      <input id="apiKey" type="password" placeholder="sk-…" autocomplete="off">
+      <button id="brainBtn">Brainstorm more ideas</button>
+    </div>
+    <p id="aiMsg" class="muted"></p>
+  </section>
+</main>
+
+<footer><p>SideHustle AI · 100% local — your plans and income never leave this browser.</p></footer>
+
+<script src="js/hustlebank.js"></script>
+<script src="js/logic.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
