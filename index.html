@@ -7,14 +7,31 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<header class="hero">
-  <h1>SideHustle AI</h1>
-  <p class="tagline">Match your skills to a side hustle, get a 30-day launch plan, track income to your goal.</p>
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M16 9 L22 20 L16 17.4 L10 20 Z" fill="currentColor"/>
+      </svg>
+      <div>
+        <h1>SideHustle <span>AI</span></h1>
+        <p class="tagline">Match your skills to a side hustle, get a 30-day launch plan, track income to your goal.</p>
+      </div>
+    </div>
+    <nav class="desk-rail" aria-label="Steps">
+      <a href="#quiz"><span class="rail-n">1</span> Profile</a>
+      <a href="#results"><span class="rail-n">2</span> Matches</a>
+      <a href="#plan"><span class="rail-n">3</span> 30-day plan</a>
+      <a href="#income"><span class="rail-n">4</span> Income</a>
+    </nav>
+  </div>
 </header>
 
 <main>
   <section class="card" id="quiz">
-    <h2>1 · What are you working with?</h2>
+    <p class="kicker">Step 1 · Your hustle profile</p>
+    <h2>What are you working with?</h2>
     <div class="grid">
       <div>
         <h3>Your skills <span class="muted">(pick any)</span></h3>
@@ -41,45 +58,53 @@
     <div class="row">
       <button id="matchBtn" class="primary">Find my hustles</button>
     </div>
-    <p id="quizErrors" class="error"></p>
+    <p id="quizErrors" class="error" role="alert"></p>
   </section>
 
   <section class="card hidden" id="results">
-    <h2>2 · Your ranked matches</h2>
+    <p class="kicker">Step 2 · The pinboard</p>
+    <h2>Your ranked matches</h2>
+    <p class="muted lede">Scored from your skills, interests, available hours, and startup budget.</p>
     <ol id="rankList" class="ranked"></ol>
   </section>
 
   <section class="card hidden" id="plan">
-    <h2>3 · 30-day launch plan <span id="planFor" class="muted"></span></h2>
-    <div id="planWeeks"></div>
-    <p class="muted"><span id="planProgress"></span></p>
+    <p class="kicker">Step 3 · Launch sequence</p>
+    <h2>30-day launch plan <span id="planFor" class="muted"></span></h2>
+    <div id="planWeeks" class="weeks"></div>
+    <p class="plan-ledger"><span id="planProgress"></span></p>
   </section>
 
   <section class="card" id="income">
-    <h2>4 · Income tracker</h2>
-    <div class="grid">
+    <p class="kicker">Step 4 · The cash ledger</p>
+    <h2>Income tracker</h2>
+    <div class="grid ledger-top">
       <label>Monthly goal ($)
         <input id="goal" type="number" min="0" value="500">
       </label>
-      <div class="goalbar"><div id="goalFill"></div></div>
+      <div class="goalwrap">
+        <div class="goallabels"><span>$0</span><span>Goal</span></div>
+        <div class="goalbar"><div id="goalFill"></div></div>
+      </div>
     </div>
-    <p><strong id="incomeLine"></strong></p>
+    <p class="income-line"><strong id="incomeLine"></strong></p>
     <div class="row">
-      <input id="amt" type="number" min="0" step="0.01" placeholder="Amount $">
-      <input id="note" type="text" placeholder="Note (e.g. logo design)" maxlength="60">
-      <button id="logBtn"Log income</button>
+      <input id="amt" type="number" min="0" step="0.01" placeholder="Amount $" aria-label="Income amount">
+      <input id="note" type="text" placeholder="Note (e.g. logo design)" maxlength="60" aria-label="Income note">
+      <button id="logBtn" class="primary">Log income</button>
     </div>
     <ul id="incomeList" class="entries"></ul>
   </section>
 
-  <section class="card" id="aiBox">
-    <h2>Optional AI brainstorm</h2>
+  <section class="card napkin" id="aiBox">
+    <p class="kicker">Optional · Napkin sketches</p>
+    <h2>AI brainstorm</h2>
     <p class="muted">Paste your own OpenAI API key for custom hustle ideas beyond the bank. The key stays in your browser only and is never required.</p>
     <div class="row">
-      <input id="apiKey" type="password" placeholder="sk-…" autocomplete="off">
+      <input id="apiKey" type="password" placeholder="sk-…" autocomplete="off" aria-label="OpenAI API key">
       <button id="brainBtn">Brainstorm more ideas</button>
     </div>
-    <p id="aiMsg" class="muted"></p>
+    <p id="aiMsg" class="muted airesult"></p>
   </section>
 </main>
 
