@@ -71,5 +71,62 @@ flow "validateProfile catches bad hours" "
   if(L.validateProfile({hoursPerWeek:6}).length) throw new Error('6h flagged');
 "
 
+flow "incomeCSV full log export" "
+  const L=require('./js/logic.js');
+  const csv=L.incomeCSV([
+    {date:'2026-09-28',amount:320,note:'First client'},
+    {date:'2026-10-01',amount:150.75,note:''},
+    {date:'2026-10-05',amount:89.99,note:'Tips, \"cash\"'}
+  ]);
+  const lines=csv.split('\n');
+  if(lines.length!==4) throw new Error('lines='+lines.length);
+  if(!lines[2].includes('150.75')) throw new Error('row2 missing amount');
+  if(lines[3]!=='\"2026-10-05\",\"89.99\",\"Tips, \"\"cash\"\"\"') throw new Error('escaping: '+lines[3]);
+"
+
+flow "monthly totals tell the income story" "
+  const L=require('./js/logic.js');
+  const ms=L.monthlyTotals([
+    {date:'2026-08-02',amount:120},{date:'2026-09-10',amount:300},
+    {date:'2026-09-20',amount:200},{date:'2026-10-01',amount:450}]);
+  if(ms.length!==3||ms[0].month!=='2026-10') throw new Error('order');
+  if(ms[1].total!==500||ms[1].count!==2) throw new Error('Sep math');
+  const t=L.incomeTotals(ms.flatMap(m=>[]),0);
+  if(t.total!==0) throw new Error('sanity');
+"
+
+flow "sortRanked keeps ties stable by secondary key" "
+  const L=require('./js/logic.js'); const B=require('./js/hustlebank.js');
+  const r=L.scoreHustles({skills:['coding'],interests:['tech'],hoursPerWeek:8,maxCost:3},B);
+  const byCost=L.sortRanked(r,'cost');
+  // within the same cost tier, higher score comes first (documented tiebreak)
+  for(let i=1;i<byCost.length;i++){
+    const a=byCost[i-1],b=byCost[i];
+    if(b.hustle.cost===a.hustle.cost&&b.score>a.score) throw new Error('tiebreak broken');
+  }
+"
+
+flow "run-rate on a real month: on track then falls behind" "
+  const L=require('./js/logic.js');
+  const es=[];
+  for(let d=1;d<=10;d++) es.push({date:'2026-10-'+String(d).padStart(2,'0'),amount:50});
+  const early=L.incomeRunRate(es.slice(0,5),1200,'2026-10-05');
+  if(early.onTrack!==true) throw new Error('day 5 should be on track');
+  // same entries, but now it's day 20 with no new income -> behind
+  const late=L.incomeRunRate(es,1200,'2026-10-20');
+  if(late.monthTotal!==500||late.onTrack!==false) throw new Error('day 20 should be behind: '+JSON.stringify(late));
+  if(late.needed!==1200-late.projected) throw new Error('needed math');
+"
+
+flow "end-to-end: quiz -> sort -> pin ids are stable across sorts" "
+  const L=require('./js/logic.js'); const B=require('./js/hustlebank.js');
+  const r=L.scoreHustles({skills:['design'],interests:['creative'],hoursPerWeek:6,maxCost:2},B);
+  const byScore=L.sortRanked(r,'score').slice(0,8).map(x=>x.hustle.id);
+  const byEarn=L.sortRanked(r,'earning').slice(0,8).map(x=>x.hustle.id);
+  const pin=byEarn[0];
+  if(!byScore.includes(pin)) throw new Error('pin id not in top-8 of another sort');
+  if(new Set(byScore).size!==8) throw new Error('dupes');
+"
+
 echo "--- e2e: $pass passed, $fail failed ---"
 exit $((fail>0))

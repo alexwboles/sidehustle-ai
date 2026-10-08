@@ -7,9 +7,10 @@
 "Start a side hustle" advice is generic. What works depends on *your* skills, *your* schedule, and *your* budget — and most people stall between the idea and the first paying customer. SideHustle AI closes that gap:
 
 1. **24-idea bank** — freelance writing, meal prep, mobile detailing, bookkeeping, tutoring, and more, each with skill/interest tags, weekly time need, startup cost tier, and realistic pay ranges
-2. **Fit scoring** — ranks ideas by skill match, interest match, time fit, startup cost, and earning potential (transparent weighted score, not a black box)
+2. **Fit scoring** — ranks ideas by skill match, interest match, time fit, startup cost, and earning potential (transparent weighted score, not a black box); re-sort by fit, earning potential, startup cost, or hours
 3. **30-day launch plans** — every idea expands into 4 weekly phases (Validate → Set up → Launch → Grow) with checkable tasks
-4. **Income tracker** — log earnings, watch a progress bar climb toward your monthly goal
+4. **Pinned shortlist** — pin hustles to compare side by side (fit, cost, time, earning, estimated $/mo)
+5. **Income tracker** — log earnings, watch a progress bar climb toward your monthly goal, see your $/day pace and month-end projection ("on track ✓" or "$X short of goal"), a by-month ledger, and export the log as CSV
 5. **Optional AI brainstorm** — paste your own OpenAI API key for custom ideas beyond the bank (never required)
 
 ## How to run

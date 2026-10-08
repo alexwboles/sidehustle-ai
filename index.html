@@ -65,7 +65,26 @@
     <p class="kicker">Step 2 · The pinboard</p>
     <h2>Your ranked matches</h2>
     <p class="muted lede">Scored from your skills, interests, available hours, and startup budget.</p>
+    <div class="row tight sortrow">
+      <label class="muted" for="sortSel">Sort by</label>
+      <select id="sortSel">
+        <option value="score">Best fit</option>
+        <option value="earning">Highest earning potential</option>
+        <option value="cost">Lowest startup cost</option>
+        <option value="hours">Fewest hours/week</option>
+      </select>
+    </div>
     <ol id="rankList" class="ranked"></ol>
+  </section>
+
+  <section class="card hidden" id="shortlist">
+    <p class="kicker">Compare</p>
+    <h2>Pinned shortlist</h2>
+    <p class="muted lede">Your pinned hustles, side by side.</p>
+    <div class="tablewrap"><table class="pin-table">
+      <thead><tr><th>Hustle</th><th>Fit</th><th>Cost</th><th>Time</th><th>Earning</th><th>Est. $/mo</th><th></th></tr></thead>
+      <tbody id="pinTable"></tbody>
+    </table></div>
   </section>
 
   <section class="card hidden" id="plan">
@@ -88,12 +107,16 @@
       </div>
     </div>
     <p class="income-line"><strong id="incomeLine"></strong></p>
+    <p id="runRate" class="runrate" aria-live="polite"></p>
     <div class="row">
       <input id="amt" type="number" min="0" step="0.01" placeholder="Amount $" aria-label="Income amount">
       <input id="note" type="text" placeholder="Note (e.g. logo design)" maxlength="60" aria-label="Income note">
       <button id="logBtn" class="primary">Log income</button>
+      <button id="exportCsvBtn">Export CSV</button>
     </div>
     <ul id="incomeList" class="entries"></ul>
+    <h3>By month</h3>
+    <ul id="monthList" class="entries months"></ul>
   </section>
 
   <section class="card napkin" id="aiBox">

@@ -224,6 +224,32 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .entries .del { padding: 0.3rem 0.7rem; font-size: 0.8rem; box-shadow: none; color: var(--muted); }
 .entries .del:hover { color: var(--accent-deep); border-color: var(--accent-line); }
 
+/* ---------- new: sort, pins, run-rate, monthly ledger ---------- */
+.row.tight { margin-top: 0.6rem; }
+.sortrow label { font-size: 0.88rem; }
+.sortrow select {
+  padding: 0.5rem 0.7rem; border: 1px solid var(--line); border-radius: 0;
+  font: inherit; font-size: 0.9rem; background: #fff; color: var(--ink);
+}
+.ranked .pin {
+  padding: 0.45rem 1rem; font-size: 0.88rem; box-shadow: none;
+  border-color: var(--line); color: var(--ink-soft);
+}
+.ranked .pin:hover { border-color: var(--accent); color: var(--accent-deep); }
+.ranked .pin.on { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-soft); }
+.runrate { font-size: 0.95rem; font-weight: 600; color: var(--ink-soft); margin: 0.4rem 0 0; }
+.runrate.on { color: #2e7d32; }
+.runrate.off { color: var(--accent-deep); }
+.months li { display: flex; gap: 0.75rem; align-items: baseline; padding: 0.45rem 0; border-bottom: 1px dashed var(--line); }
+.months li:last-child { border-bottom: 0; }
+.tablewrap { overflow-x: auto; margin-top: 0.8rem; border: 1px solid var(--line); border-radius: 0; background: #fff; }
+.pin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.pin-table th, .pin-table td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+.pin-table tbody tr:last-child td { border-bottom: none; }
+.pin-table th { color: var(--muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.pin-table .del { padding: 0.3rem 0.7rem; font-size: 0.8rem; box-shadow: none; color: var(--muted); }
+.pin-table .del:hover { color: var(--accent-deep); border-color: var(--accent-line); }
+
 /* ---------- napkin (AI box) ---------- */
 .napkin {
   border: 1.5px dashed var(--accent-line);

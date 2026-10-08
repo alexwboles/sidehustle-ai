@@ -73,6 +73,61 @@ function validateProfile(p) {
   return errs;
 }
 
+/** CSV export of the income log: Date,Amount,Note. */
+function incomeCSV(entries) {
+  const q = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  const lines = [["Date", "Amount", "Note"].map(q).join(",")];
+  (entries || []).forEach(e => {
+    lines.push([e.date || "", Number(e.amount) || 0, e.note || ""].map(q).join(","));
+  });
+  return lines.join("\n");
+}
+
+/** Group income entries by month (YYYY-MM), newest first: [{month,total,count}]. */
+function monthlyTotals(entries) {
+  const by = {};
+  (entries || []).forEach(e => {
+    const m = String(e.date || "").slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(m)) return;
+    if (!by[m]) by[m] = { month: m, total: 0, count: 0 };
+    by[m].total = Math.round((by[m].total + (Number(e.amount) || 0)) * 100) / 100;
+    by[m].count++;
+  });
+  return Object.values(by).sort((a, b) => (a.month < b.month ? 1 : -1));
+}
+
+/** Re-sort a ranked hustle list: 'score' (default) | 'earning' | 'cost' | 'hours'. */
+function sortRanked(ranked, by) {
+  const arr = (ranked || []).slice();
+  if (by === "earning") arr.sort((a, b) => b.hustle.earning - a.hustle.earning || b.score - a.score);
+  else if (by === "cost") arr.sort((a, b) => a.hustle.cost - b.hustle.cost || b.score - a.score);
+  else if (by === "hours") arr.sort((a, b) => a.hustle.hours - b.hustle.hours || b.score - a.score);
+  else arr.sort((a, b) => b.score - a.score || b.hustle.earning - a.hustle.earning);
+  return arr;
+}
+
+/** Run-rate projection for the current month: are you on pace for the goal? */
+function incomeRunRate(entries, goal, refDate) {
+  const ref = refDate ? new Date(refDate + "T12:00:00") : new Date();
+  const y = ref.getFullYear(), m = ref.getMonth();
+  const month = y + "-" + String(m + 1).padStart(2, "0");
+  let monthTotal = 0;
+  (entries || []).forEach(e => {
+    if (String(e.date || "").slice(0, 7) === month) monthTotal += Number(e.amount) || 0;
+  });
+  monthTotal = Math.round(monthTotal * 100) / 100;
+  const daysElapsed = Math.max(1, ref.getDate());
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const perDay = Math.round(monthTotal / daysElapsed * 100) / 100;
+  const projected = Math.round(perDay * daysInMonth * 100) / 100;
+  const g = Number(goal) || 0;
+  return {
+    month, monthTotal, daysElapsed, daysInMonth, perDay, projected, goal: g,
+    onTrack: g > 0 ? projected >= g : null,
+    needed: g > 0 ? Math.max(0, Math.round((g - projected) * 100) / 100) : 0
+  };
+}
+
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { overlap, scoreHustles, projectedMonthly, launchPlan, incomeTotals, validateProfile };
+  module.exports = { overlap, scoreHustles, projectedMonthly, launchPlan, incomeTotals, validateProfile, incomeCSV, monthlyTotals, sortRanked, incomeRunRate };
 }
