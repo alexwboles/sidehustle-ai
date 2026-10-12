@@ -43,6 +43,61 @@ check "index.html has new UI hooks" node -e "
   const fs=require('fs'); const h=fs.readFileSync('index.html','utf8');
   for(const id of ['sortSel','shortlist','pinTable','exportCsvBtn','runRate','monthList'])
     if(!h.includes('id=\"'+id+'\"')) throw new Error('missing '+id)"
+check "index.html has improvement UI hooks" node -e "
+  const fs=require('fs'); const h=fs.readFileSync('index.html','utf8');
+  for(const id of ['incHustle','analyticsLine','hustleList','netLine','expAmt','expNote','logExpBtn','exportExpBtn','expenseList'])
+    if(!h.includes('id=\"'+id+'\"')) throw new Error('missing '+id)"
+check "expenseTotals math" node -e "
+  const L=require('./js/logic.js');
+  const t=L.expenseTotals([{date:'2026-10-01',amount:49.99},{date:'2026-10-02',amount:12.5},{date:'2026-10-03',amount:'bad'}]);
+  if(t.total!==62.49) throw new Error('total '+t.total);
+  if(t.count!==3) throw new Error('count '+t.count);
+  const e=L.expenseTotals([]);
+  if(e.total!==0||e.count!==0) throw new Error('empty')"
+check "netProfit subtracts expenses from income vs goal" node -e "
+  const L=require('./js/logic.js');
+  const np=L.netProfit([{amount:500},{amount:300}],[{amount:120},{amount:30}],1000);
+  if(np.income!==800) throw new Error('income '+np.income);
+  if(np.expenses!==150) throw new Error('expenses '+np.expenses);
+  if(np.net!==650) throw new Error('net '+np.net);
+  if(np.pct!==65) throw new Error('pct '+np.pct);
+  if(np.remaining!==350) throw new Error('remaining '+np.remaining);
+  const neg=L.netProfit([{amount:100}],[{amount:400}],500);
+  if(neg.net!==-300) throw new Error('negative net '+neg.net);
+  if(neg.remaining!==800) throw new Error('remaining should count the hole '+neg.remaining)"
+check "expenseCSV exports header + rows" node -e "
+  const L=require('./js/logic.js');
+  const csv=L.expenseCSV([{date:'2026-10-01',amount:25,note:'ads'}]);
+  const lines=csv.split('\n');
+  if(lines[0]!=='\"Date\",\"Amount\",\"Note\"') throw new Error('header '+lines[0]);
+  if(lines.length!==2||lines[1].indexOf('ads')<0) throw new Error('row')"
+check "earningsByHustle ranks tagged income" node -e "
+  const L=require('./js/logic.js'); const B=require('./js/hustlebank.js');
+  const es=[{date:'2026-10-01',amount:200,hustleId:'tutoring'},{date:'2026-10-02',amount:50,hustleId:'tutoring'},{date:'2026-10-03',amount:300,hustleId:'meal-prep'},{date:'2026-10-04',amount:75}];
+  const r=L.earningsByHustle(es,B);
+  if(r.length!==2) throw new Error('should skip untagged, got '+r.length);
+  if(r[0].hustleId!=='meal-prep'||r[0].total!==300||r[0].count!==1) throw new Error('top: '+JSON.stringify(r[0]));
+  if(r[0].name!=='Meal-prep service') throw new Error('bank name: '+r[0].name);
+  if(r[1].hustleId!=='tutoring'||r[1].total!==250) throw new Error('second: '+JSON.stringify(r[1]));
+  const unk=L.earningsByHustle([{amount:10,hustleId:'mystery'}],B);
+  if(unk[0].name!=='mystery') throw new Error('unknown id keeps raw name')"
+check "incomeAnalytics finds best day, streak, avg" node -e "
+  const L=require('./js/logic.js');
+  const es=[{date:'2026-10-08',amount:40},{date:'2026-10-09',amount:60},{date:'2026-10-10',amount:100},{date:'2026-10-10',amount:20},{date:'2026-10-01',amount:10}];
+  const a=L.incomeAnalytics(es,'2026-10-10');
+  if(a.activeDays!==4) throw new Error('activeDays '+a.activeDays);
+  if(a.total!==230) throw new Error('total '+a.total);
+  if(a.avgPerDay!==57.5) throw new Error('avg '+a.avgPerDay);
+  if(a.bestDay.date!=='2026-10-10'||a.bestDay.total!==120) throw new Error('best: '+JSON.stringify(a.bestDay));
+  if(a.streak!==3) throw new Error('streak '+a.streak);
+  const gap=L.incomeAnalytics([{date:'2026-10-08',amount:40},{date:'2026-10-10',amount:40}],'2026-10-10');
+  if(gap.streak!==1) throw new Error('broken streak should be 1, got '+gap.streak);
+  const empty=L.incomeAnalytics([],'2026-10-10');
+  if(empty.activeDays!==0||empty.bestDay!==null||empty.streak!==0) throw new Error('empty analytics')"
+check "app.js wires expenses + hustle tags + analytics" node -e "
+  const fs=require('fs'); const a=fs.readFileSync('js/app.js','utf8');
+  for(const fn of ['netProfit','expenseCSV','earningsByHustle','incomeAnalytics','logExpBtn','incHustle','LS_EXP'])
+    if(!a.includes(fn)) throw new Error('missing '+fn)"
 check "incomeCSV exports header + rows" node -e "
   const L=require('./js/logic.js');
   const csv=L.incomeCSV([{date:'2026-10-01',amount:200,note:'Logo'},{date:'2026-10-02',amount:150.5,note:''}]);

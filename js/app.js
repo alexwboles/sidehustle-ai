@@ -3,6 +3,7 @@
   "use strict";
   const $ = id => document.getElementById(id);
   const LS_INCOME = "sidehustle.income.v1";
+  const LS_EXP = "sidehustle.expenses.v1";
   const LS_PLAN = "sidehustle.plan.v1";
   const LS_PIN = "sidehustle.pins.v1";
   const sel = { skills: new Set(), interests: new Set() };
@@ -133,14 +134,34 @@
 
   function renderIncome() {
     const entries = loadJSON(LS_INCOME, []);
+    const expenses = loadJSON(LS_EXP, []);
     const goal = +$("goal").value || 0;
     const t = incomeTotals(entries, goal);
     $("goalFill").style.width = t.pct + "%";
     $("incomeLine").textContent = money(t.total) + " earned of " + money(t.goal) + " goal" +
       (t.remaining > 0 ? " — " + money(t.remaining) + " to go" : t.goal > 0 ? " — goal hit!" : "");
+    // hustle attribution on the income form
+    const hs = $("incHustle");
+    if (hs && !hs.options.length) {
+      hs.innerHTML = "<option value=''>No hustle tagged</option>" +
+        HUSTLES.map(h => "<option value='" + h.id + "'>" + escapeHtml(h.name) + "</option>").join("");
+    }
+    // analytics strip
+    const an = incomeAnalytics(entries);
+    $("analyticsLine").textContent = entries.length
+      ? an.activeDays + " earning day" + (an.activeDays === 1 ? "" : "s") +
+        " · avg " + money(an.avgPerDay) + "/day" +
+        (an.bestDay ? " · best day " + money(an.bestDay.total) + " (" + an.bestDay.date + ")" : "") +
+        (an.streak > 1 ? " · " + an.streak + "-day streak 🔥" : an.streak === 1 ? " · earn today to start a streak" : "")
+      : "Log income to unlock your earning analytics.";
+    // income list (with hustle tags)
+    const hname = {};
+    HUSTLES.forEach(h => { hname[h.id] = h.name; });
     $("incomeList").innerHTML = entries.length ? entries.map((e, i) =>
       "<li><span><strong>" + money(e.amount) + "</strong> <span class='muted'>" +
-      escapeHtml(e.date) + (e.note ? " · " + escapeHtml(e.note) : "") + "</span></span>" +
+      escapeHtml(e.date) + (e.note ? " · " + escapeHtml(e.note) : "") +
+      (e.hustleId && hname[e.hustleId] ? " · <em>" + escapeHtml(hname[e.hustleId]) + "</em>" : "") +
+      "</span></span>" +
       "<button class='del' data-del='" + i + "'>Remove</button></li>").join("")
       : "<li class='muted'>No income logged yet — log your first win above.</li>";
     $("incomeList").querySelectorAll("[data-del]").forEach(b =>
@@ -155,6 +176,30 @@
       "<span class='muted'>" + monthLabel(m.month) + " · " + m.count + " entr" +
       (m.count === 1 ? "y" : "ies") + "</span></li>").join("")
       : "<li class='muted'>Monthly totals will appear here once you log income.</li>";
+    // earnings by hustle
+    const byH = earningsByHustle(entries, { HUSTLES });
+    $("hustleList").innerHTML = byH.length ? byH.map(r =>
+      "<li><span><strong>" + money(r.total) + "</strong></span> " +
+      "<span class='muted'>" + escapeHtml(r.name) + " · " + r.count + " entr" +
+      (r.count === 1 ? "y" : "ies") + "</span></li>").join("")
+      : "<li class='muted'>Tag income with a hustle to see which one pays best.</li>";
+    // expenses + net profit
+    const np = netProfit(entries, expenses, goal);
+    $("netLine").textContent = expenses.length || entries.length
+      ? money(np.income) + " income − " + money(np.expenses) + " expenses = " +
+        money(np.net) + " net profit" +
+        (np.goal > 0 ? (np.remaining > 0 ? " — " + money(np.remaining) + " to goal" : " — net goal hit!") : "")
+      : "No expenses logged yet.";
+    $("expenseList").innerHTML = expenses.length ? expenses.map((e, i) =>
+      "<li><span><strong>−" + money(e.amount) + "</strong> <span class='muted'>" +
+      escapeHtml(e.date) + (e.note ? " · " + escapeHtml(e.note) : "") + "</span></span>" +
+      "<button class='del' data-expdel='" + i + "'>Remove</button></li>").join("")
+      : "<li class='muted'>No expenses logged yet.</li>";
+    $("expenseList").querySelectorAll("[data-expdel]").forEach(b =>
+      b.addEventListener("click", () => {
+        const a = loadJSON(LS_EXP, []); a.splice(+b.dataset.expdel, 1);
+        saveJSON(LS_EXP, a); renderIncome();
+      }));
     // run-rate projection for the current month
     const rr = incomeRunRate(entries, goal);
     $("runRate").textContent = rr.goal > 0
@@ -196,11 +241,24 @@
       if (!(amt > 0)) { $("amt").focus(); return; }
       const a = loadJSON(LS_INCOME, []);
       a.unshift({ amount: Math.round(amt * 100) / 100, note: $("note").value.trim(),
+        hustleId: $("incHustle").value || "",
         date: new Date().toISOString().slice(0, 10) });
       saveJSON(LS_INCOME, a);
       $("amt").value = ""; $("note").value = "";
       renderIncome();
     });
+    $("logExpBtn").addEventListener("click", () => {
+      const amt = parseFloat($("expAmt").value);
+      if (!(amt > 0)) { $("expAmt").focus(); return; }
+      const a = loadJSON(LS_EXP, []);
+      a.unshift({ amount: Math.round(amt * 100) / 100, note: $("expNote").value.trim(),
+        date: new Date().toISOString().slice(0, 10) });
+      saveJSON(LS_EXP, a);
+      $("expAmt").value = ""; $("expNote").value = "";
+      renderIncome();
+    });
+    $("exportExpBtn").addEventListener("click", () =>
+      downloadCSV("sidehustle-expenses.csv", expenseCSV(loadJSON(LS_EXP, []))));
     $("brainBtn").addEventListener("click", async () => {
       const key = $("apiKey").value.trim();
       if (!key) { $("aiMsg").textContent = "Paste your OpenAI API key first (optional)."; return; }

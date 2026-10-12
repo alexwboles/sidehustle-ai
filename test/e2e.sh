@@ -128,5 +128,27 @@ flow "end-to-end: quiz -> sort -> pin ids are stable across sorts" "
   if(new Set(byScore).size!==8) throw new Error('dupes');
 "
 
+flow "end-to-end: expenses + tagged income -> net profit, by-hustle, analytics" "
+  const L=require('./js/logic.js'); const B=require('./js/hustlebank.js');
+  const income=[
+    {date:'2026-10-08',amount:150,note:'client A',hustleId:'freelance-writing'},
+    {date:'2026-10-09',amount:200,note:'client B',hustleId:'freelance-writing'},
+    {date:'2026-10-10',amount:120,note:'weekend shift',hustleId:'pet-sitting'}
+  ];
+  const expenses=[{date:'2026-10-08',amount:40,note:'hosting'},{date:'2026-10-09',amount:60,note:'supplies'}];
+  const np=L.netProfit(income,expenses,500);
+  if(np.income!==470||np.expenses!==100||np.net!==370) throw new Error('net math: '+JSON.stringify(np));
+  if(np.remaining!==130) throw new Error('remaining: '+np.remaining);
+  const byH=L.earningsByHustle(income,B);
+  if(byH.length!==2) throw new Error('two hustles tagged: '+byH.length);
+  if(byH[0].hustleId!=='freelance-writing'||byH[0].total!==350) throw new Error('top hustle: '+JSON.stringify(byH[0]));
+  const a=L.incomeAnalytics(income,'2026-10-10');
+  if(a.streak!==3) throw new Error('streak should be 3, got '+a.streak);
+  if(a.bestDay.date!=='2026-10-09'||a.bestDay.total!==200) throw new Error('best day: '+JSON.stringify(a.bestDay));
+  if(a.avgPerDay!==Math.round(470/3*100)/100) throw new Error('avg: '+a.avgPerDay);
+  const exp=L.expenseTotals(expenses);
+  if(exp.total!==100||exp.count!==2) throw new Error('expenseTotals: '+JSON.stringify(exp));
+"
+
 echo "--- e2e: $pass passed, $fail failed ---"
 exit $((fail>0))

@@ -128,6 +128,86 @@ function incomeRunRate(entries, goal, refDate) {
   };
 }
 
+/** Expense log math: entries [{date, amount, note}]. */
+function expenseTotals(entries) {
+  const total = (entries || []).reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  return { total: Math.round(total * 100) / 100, count: (entries || []).length };
+}
+
+/** Net profit = income - expenses, measured against the same monthly goal. */
+function netProfit(incomeEntries, expenseEntries, goal) {
+  const income = (incomeEntries || []).reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const expenses = (expenseEntries || []).reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const net = Math.round((income - expenses) * 100) / 100;
+  const g = Number(goal) || 0;
+  return {
+    income: Math.round(income * 100) / 100,
+    expenses: Math.round(expenses * 100) / 100,
+    net: net, goal: g,
+    pct: g > 0 ? Math.min(100, Math.round(net / g * 100)) : 0,
+    remaining: Math.max(0, Math.round((g - net) * 100) / 100)
+  };
+}
+
+/** CSV export of the expense log: Date,Amount,Note. */
+function expenseCSV(entries) {
+  const q = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  const lines = [["Date", "Amount", "Note"].map(q).join(",")];
+  (entries || []).forEach(e => {
+    lines.push([e.date || "", Number(e.amount) || 0, e.note || ""].map(q).join(","));
+  });
+  return lines.join("\n");
+}
+
+/** Earnings attributed per hustle: [{ hustleId, name, total, count }], biggest first.
+ *  Entries without a hustleId are skipped. Unknown ids keep their raw id as the name. */
+function earningsByHustle(entries, bank) {
+  const by = {};
+  (entries || []).forEach(e => {
+    const id = e.hustleId || "";
+    if (!id) return;
+    if (!by[id]) by[id] = { hustleId: id, total: 0, count: 0 };
+    by[id].total = Math.round((by[id].total + (Number(e.amount) || 0)) * 100) / 100;
+    by[id].count++;
+  });
+  const nameOf = {};
+  ((bank && bank.HUSTLES) || []).forEach(h => { nameOf[h.id] = h.name; });
+  return Object.keys(by).map(k => ({
+    hustleId: k, name: nameOf[k] || k, total: by[k].total, count: by[k].count
+  })).sort((a, b) => b.total - a.total);
+}
+
+/** Income analytics: best day, earning streak, active days, avg/day. Pure. */
+function incomeAnalytics(entries, refDate) {
+  const ref = refDate ? new Date(refDate + "T12:00:00") : new Date();
+  const byDay = {};
+  (entries || []).forEach(e => {
+    const d = String(e.date || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
+    byDay[d] = Math.round(((byDay[d] || 0) + (Number(e.amount) || 0)) * 100) / 100;
+  });
+  const days = Object.keys(byDay).sort();
+  let bestDay = null;
+  days.forEach(d => {
+    if (!bestDay || byDay[d] > bestDay.total) bestDay = { date: d, total: byDay[d] };
+  });
+  // streak: consecutive calendar days with income, ending today (or yesterday)
+  const key = (dt) => dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") +
+    "-" + String(dt.getDate()).padStart(2, "0");
+  let streak = 0;
+  const cursor = new Date(ref);
+  if (!(byDay[key(cursor)] > 0)) cursor.setDate(cursor.getDate() - 1);
+  while (byDay[key(cursor)] > 0) { streak++; cursor.setDate(cursor.getDate() - 1); }
+  const total = days.reduce((s, d) => s + byDay[d], 0);
+  return {
+    activeDays: days.length,
+    total: Math.round(total * 100) / 100,
+    avgPerDay: days.length ? Math.round(total / days.length * 100) / 100 : 0,
+    bestDay: bestDay,
+    streak: streak
+  };
+}
+
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { overlap, scoreHustles, projectedMonthly, launchPlan, incomeTotals, validateProfile, incomeCSV, monthlyTotals, sortRanked, incomeRunRate };
+  module.exports = { overlap, scoreHustles, projectedMonthly, launchPlan, incomeTotals, validateProfile, incomeCSV, monthlyTotals, sortRanked, incomeRunRate, expenseTotals, netProfit, expenseCSV, earningsByHustle, incomeAnalytics };
 }

@@ -108,8 +108,10 @@
     </div>
     <p class="income-line"><strong id="incomeLine"></strong></p>
     <p id="runRate" class="runrate" aria-live="polite"></p>
+    <p class="analytics" id="analyticsLine"></p>
     <div class="row">
       <input id="amt" type="number" min="0" step="0.01" placeholder="Amount $" aria-label="Income amount">
+      <select id="incHustle" aria-label="Which hustle earned this"></select>
       <input id="note" type="text" placeholder="Note (e.g. logo design)" maxlength="60" aria-label="Income note">
       <button id="logBtn" class="primary">Log income</button>
       <button id="exportCsvBtn">Export CSV</button>
@@ -117,6 +119,18 @@
     <ul id="incomeList" class="entries"></ul>
     <h3>By month</h3>
     <ul id="monthList" class="entries months"></ul>
+    <h3>Earnings by hustle</h3>
+    <ul id="hustleList" class="entries months"></ul>
+    <h3>Expenses</h3>
+    <p class="muted">Track what each hustle costs you — supplies, fees, ads. Net profit is what counts toward your goal.</p>
+    <p class="income-line"><strong id="netLine"></strong></p>
+    <div class="row">
+      <input id="expAmt" type="number" min="0" step="0.01" placeholder="Amount $" aria-label="Expense amount">
+      <input id="expNote" type="text" placeholder="Note (e.g. domain renewal)" maxlength="60" aria-label="Expense note">
+      <button id="logExpBtn">Log expense</button>
+      <button id="exportExpBtn">Export CSV</button>
+    </div>
+    <ul id="expenseList" class="entries"></ul>
   </section>
 
   <section class="card napkin" id="aiBox">
