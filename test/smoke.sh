@@ -39,6 +39,10 @@ check "no rounded rectangles in css" node -e "
   const bad=[...css.matchAll(/border-radius:\s*([^;}]+)/g)].map(m=>m[1].trim())
     .filter(v=>!/^(0|50%|var\(--radius\))$/.test(v));
   if(bad.length) throw new Error(JSON.stringify(bad))"
+check "index.html has dashboard UI hooks" node -e "
+  const fs=require('fs'); const h=fs.readFileSync('index.html','utf8');
+  for(const id of ['dash','takeHomeHero','takeHomeSub','dashGoalFill','dashGoalPct','dashGoalLine','dashMonth','statBest','statStreak','statAvg','statPace'])
+    if(!h.includes('id=\"'+id+'\"')) throw new Error('missing '+id)"
 check "index.html has new UI hooks" node -e "
   const fs=require('fs'); const h=fs.readFileSync('index.html','utf8');
   for(const id of ['sortSel','shortlist','pinTable','exportCsvBtn','runRate','monthList'])

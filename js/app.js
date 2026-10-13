@@ -56,8 +56,13 @@
     $("rankList").innerHTML = top.map((r) => {
       const h = r.hustle, pm = projectedMonthly(h, lastProfile.hoursPerWeek);
       const pinned = pins.has(h.id);
+      const b = r.breakdown || {};
+      const pct = n => Math.round((n || 0) * 100);
       return "<li><h4>" + escapeHtml(h.name) + "<span class='score'>" + r.score + " match</span></h4>" +
+        "<div class='fitbar' aria-hidden='true'><i style='width:" + r.score + "%'></i></div>" +
         "<p>" + escapeHtml(h.desc) + "</p>" +
+        "<p class='meta'>fit: skills " + pct(b.skillMatch) + "% · interests " + pct(b.interestMatch) +
+        "% · time " + pct(b.timeFit) + "% · cost " + pct(b.costScore) + "% · earning " + pct(b.earnScore) + "%</p>" +
         "<p class='meta'>" + COST_LABELS[h.cost] + " · ~" + h.hours + "h/wk · " +
         "est. " + money(pm.low) + "–" + money(pm.high) + "/mo at " + lastProfile.hoursPerWeek + "h/wk</p>" +
         "<div class='row tight'>" +
@@ -140,6 +145,7 @@
     const goal = +$("goal").value || 0;
     const t = incomeTotals(entries, goal);
     $("goalFill").style.width = t.pct + "%";
+    $("goalCapLabel").textContent = money(t.goal);
     $("incomeLine").textContent = money(t.total) + " earned of " + money(t.goal) + " goal" +
       (t.remaining > 0 ? " — " + money(t.remaining) + " to go" : t.goal > 0 ? " — goal hit!" : "");
     // hustle attribution on the income form
@@ -159,7 +165,7 @@
       ? an.activeDays + " earning day" + (an.activeDays === 1 ? "" : "s") +
         " · avg " + money(an.avgPerDay) + "/day" +
         (an.bestDay ? " · best day " + money(an.bestDay.total) + " (" + an.bestDay.date + ")" : "") +
-        (an.streak > 1 ? " · " + an.streak + "-day streak 🔥" : an.streak === 1 ? " · earn today to start a streak" : "")
+        (an.streak > 1 ? " · " + an.streak + "-day streak" : an.streak === 1 ? " · earn today to start a streak" : "")
       : "Log income to unlock your earning analytics.";
     // income list (with hustle tags)
     const hname = {};
@@ -183,13 +189,24 @@
       "<span class='muted'>" + monthLabel(m.month) + " · " + m.count + " entr" +
       (m.count === 1 ? "y" : "ies") + "</span></li>").join("")
       : "<li class='muted'>Monthly totals will appear here once you log income.</li>";
-    // net profit by hustle: hustle-tagged income minus hustle-tagged expenses
+    // net profit by hustle: hustle-tagged income minus hustle-tagged expenses,
+    // ranked with effective $/hr (Gridwise-style profit charting)
     const byH = profitByHustle(entries, expenses, { HUSTLES });
-    $("hustleList").innerHTML = byH.length ? byH.map(r =>
-      "<li><span><strong class='" + (r.net < 0 ? "neg" : "") + "'>" + money(r.net) + "</strong> net</span> " +
-      "<span class='muted'>" + escapeHtml(r.name) + " · " + money(r.income) + " in − " +
-      money(r.expenses) + " out · " + r.count + " entr" +
-      (r.count === 1 ? "y" : "ies") + "</span></li>").join("")
+    const hoursOf = {};
+    HUSTLES.forEach(h => { hoursOf[h.id] = h.hours; });
+    const perHr = r => {
+      const hw = (hoursOf[r.hustleId] || 0) * 4.33;
+      return hw > 0 ? r.net / hw : null;
+    };
+    $("hustleList").innerHTML = byH.length ? byH.map(r => {
+      const hr = perHr(r);
+      return "<li><span><strong class='" + (r.net < 0 ? "neg" : "") + "'>" + money(r.net) + "</strong> net" +
+        (hr === null ? "" : " <span class='muted'>· " + money(Math.round(hr * 100) / 100) + "/hr</span>") +
+        "</span> " +
+        "<span class='muted'>" + escapeHtml(r.name) + " · " + money(r.income) + " in − " +
+        money(r.expenses) + " out · " + r.count + " entr" +
+        (r.count === 1 ? "y" : "ies") + "</span></li>";
+    }).join("")
       : "<li class='muted'>Tag income and expenses with a hustle to see which one profits most.</li>";
     // expenses + net profit
     const np = netProfit(entries, expenses, goal);
@@ -228,6 +245,29 @@
     $("taxLine").textContent = np.net > 0 && rate > 0
       ? "Set aside " + money(tr.amount) + " (" + rate + "% of net) for taxes — keep " + money(tr.afterTax) + " spendable."
       : "";
+    // ---- earnings dashboard hero: the take-home number (Everlance frame) ----
+    const takeHome = Math.round((np.net - tr.amount) * 100) / 100;
+    const hero = $("takeHomeHero");
+    hero.textContent = (takeHome < 0 ? "−" : "") + money(Math.abs(takeHome));
+    hero.classList.toggle("neg", takeHome < 0);
+    $("takeHomeSub").textContent = entries.length || expenses.length
+      ? money(np.income) + " in − " + money(np.expenses) + " out − " + money(tr.amount) +
+        " tax set-aside (" + rate + "%)"
+      : "Log income to see your take-home.";
+    $("dashMonth").textContent = monthLabel(rr.month || currentMonth());
+    $("dashGoalFill").style.width = Math.min(100, t.pct) + "%";
+    $("dashGoalPct").textContent = Math.round(t.pct) + "%";
+    $("dashGoalLine").textContent = money(t.total) + " of " + money(t.goal) + " goal" +
+      (t.remaining > 0 ? " — " + money(t.remaining) + " to go" : t.goal > 0 ? " — goal hit" : "");
+    $("statBest").textContent = an.bestDay ? money(an.bestDay.total) : "—";
+    $("statStreak").textContent = an.streak > 0 ? an.streak + (an.streak === 1 ? " day" : " days") : "—";
+    $("statAvg").textContent = entries.length ? money(an.avgPerDay) : "—";
+    $("statPace").textContent = rr.goal > 0 ? money(rr.projected) : (rr.monthTotal > 0 ? money(rr.monthTotal) : "—");
+  }
+
+  function currentMonth() {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
   }
 
   function monthLabel(ym) {

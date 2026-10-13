@@ -29,6 +29,28 @@
 </header>
 
 <main>
+  <section class="card dash" id="dash" aria-label="Earnings dashboard">
+    <p class="kicker">Your earnings · <span id="dashMonth">this month</span></p>
+    <div class="dash-grid">
+      <div class="takehome">
+        <p class="takehome-label">Take-home <span class="muted">(after expenses &amp; tax set-aside)</span></p>
+        <p class="takehome-num" id="takeHomeHero">$0</p>
+        <p class="muted" id="takeHomeSub">Log income to see your take-home.</p>
+      </div>
+      <div class="dash-goal">
+        <div class="goallabels"><span>Monthly goal</span><span id="dashGoalPct">0%</span></div>
+        <div class="goalbar big"><div id="dashGoalFill"></div></div>
+        <p class="muted" id="dashGoalLine">$0 of $500 goal</p>
+      </div>
+    </div>
+    <div class="statstrip" id="statStrip">
+      <div class="stat"><span class="stat-v" id="statBest">—</span><span class="stat-k">Best day</span></div>
+      <div class="stat"><span class="stat-v" id="statStreak">—</span><span class="stat-k">Day streak</span></div>
+      <div class="stat"><span class="stat-v" id="statAvg">—</span><span class="stat-k">Avg / day</span></div>
+      <div class="stat"><span class="stat-v" id="statPace">—</span><span class="stat-k">Month pace</span></div>
+    </div>
+  </section>
+
   <section class="card" id="quiz">
     <p class="kicker">Step 1 · Your hustle profile</p>
     <h2>What are you working with?</h2>
@@ -103,7 +125,7 @@
         <input id="goal" type="number" min="0" value="500">
       </label>
       <div class="goalwrap">
-        <div class="goallabels"><span>$0</span><span>Goal</span></div>
+        <div class="goallabels"><span>$0</span><span id="goalCapLabel">Goal</span></div>
         <div class="goalbar"><div id="goalFill"></div></div>
       </div>
     </div>
