@@ -65,12 +65,14 @@ check "netProfit subtracts expenses from income vs goal" node -e "
   const neg=L.netProfit([{amount:100}],[{amount:400}],500);
   if(neg.net!==-300) throw new Error('negative net '+neg.net);
   if(neg.remaining!==800) throw new Error('remaining should count the hole '+neg.remaining)"
-check "expenseCSV exports header + rows" node -e "
+check "expenseCSV exports header + rows (with hustle column)" node -e "
   const L=require('./js/logic.js');
-  const csv=L.expenseCSV([{date:'2026-10-01',amount:25,note:'ads'}]);
+  const B=require('./js/hustlebank.js');
+  const csv=L.expenseCSV([{date:'2026-10-01',amount:25,hustleId:'tutoring',note:'ads'}],B);
   const lines=csv.split('\n');
-  if(lines[0]!=='\"Date\",\"Amount\",\"Note\"') throw new Error('header '+lines[0]);
-  if(lines.length!==2||lines[1].indexOf('ads')<0) throw new Error('row')"
+  if(lines[0]!=='\"Date\",\"Amount\",\"Hustle\",\"Note\"') throw new Error('header '+lines[0]);
+  if(lines.length!==2||lines[1].indexOf('ads')<0) throw new Error('row');
+  if(lines[1].indexOf('Online tutoring')<0) throw new Error('hustle name should resolve: '+lines[1])"
 check "earningsByHustle ranks tagged income" node -e "
   const L=require('./js/logic.js'); const B=require('./js/hustlebank.js');
   const es=[{date:'2026-10-01',amount:200,hustleId:'tutoring'},{date:'2026-10-02',amount:50,hustleId:'tutoring'},{date:'2026-10-03',amount:300,hustleId:'meal-prep'},{date:'2026-10-04',amount:75}];
@@ -94,9 +96,10 @@ check "incomeAnalytics finds best day, streak, avg" node -e "
   if(gap.streak!==1) throw new Error('broken streak should be 1, got '+gap.streak);
   const empty=L.incomeAnalytics([],'2026-10-10');
   if(empty.activeDays!==0||empty.bestDay!==null||empty.streak!==0) throw new Error('empty analytics')"
-check "app.js wires expenses + hustle tags + analytics" node -e "
+check "app.js wires expenses + hustle tags + analytics + sweep-2" node -e "
   const fs=require('fs'); const a=fs.readFileSync('js/app.js','utf8');
-  for(const fn of ['netProfit','expenseCSV','earningsByHustle','incomeAnalytics','logExpBtn','incHustle','LS_EXP'])
+  for(const fn of ['netProfit','expenseCSV','incomeAnalytics','logExpBtn','incHustle','LS_EXP',
+    'profitByHustle','taxReserve','planProgress','expHustle','taxRate','planFill'])
     if(!a.includes(fn)) throw new Error('missing '+fn)"
 check "incomeCSV exports header + rows" node -e "
   const L=require('./js/logic.js');
@@ -141,6 +144,34 @@ check "incomeRunRate projects month-end pace" node -e "
   if(behind.onTrack!==false||behind.needed!==260) throw new Error('behind: '+JSON.stringify(behind));
   const nogoal=L.incomeRunRate(es,0,'2026-10-07');
   if(nogoal.onTrack!==null) throw new Error('no-goal onTrack should be null')"
+
+check "profitByHustle nets income minus expenses per hustle" node -e "
+  const L=require('./js/logic.js'); const B=require('./js/hustlebank.js');
+  const inc=[{amount:500,hustleId:'tutoring'},{amount:300,hustleId:'meal-prep'},{amount:50}];
+  const exp=[{amount:120,hustleId:'tutoring'},{amount:40,hustleId:'meal-prep'},{amount:10}];
+  const pb=L.profitByHustle(inc,exp,B);
+  if(pb.length!==2) throw new Error('two hustles: '+JSON.stringify(pb));
+  if(pb[0].hustleId!=='tutoring'||pb[0].net!==380||pb[0].income!==500||pb[0].expenses!==120) throw new Error('tutoring: '+JSON.stringify(pb[0]));
+  if(pb[1].net!==260) throw new Error('meal-prep: '+JSON.stringify(pb[1]));
+  const unk=L.profitByHustle([{amount:10,hustleId:'zzz'}],[],B);
+  if(unk[0].name!=='zzz'||unk[0].net!==10) throw new Error('unknown id keeps raw name')"
+check "taxReserve computes set-aside and spendable remainder" node -e "
+  const L=require('./js/logic.js');
+  const t=L.taxReserve(380,25);
+  if(t.amount!==95||t.afterTax!==285||t.rate!==25) throw new Error('tax: '+JSON.stringify(t));
+  if(L.taxReserve(-50,25).amount!==0) throw new Error('negative net -> 0');
+  if(L.taxReserve(100,150).rate!==100) throw new Error('rate clamps to 100');
+  if(L.taxReserve(100,0).amount!==0) throw new Error('zero rate')"
+check "planProgress tracks per-week completion" node -e "
+  const L=require('./js/logic.js');
+  const hustle={steps:['a','b','c']};
+  const p=L.planProgress(hustle,{'1-0':true,'2-1':true,'2-0':false});
+  if(p.weeks.length!==4) throw new Error('4 weeks');
+  if(p.weeks[0].done!==1||p.weeks[1].done!==1||p.weeks[2].done!==0) throw new Error('per-week: '+JSON.stringify(p.weeks.map(w=>w.done)));
+  if(p.done!==2||p.total!==7) throw new Error('totals: '+p.done+'/'+p.total);
+  if(p.weeks[0].pct!==50) throw new Error('week pct');
+  const e=L.planProgress(hustle,{});
+  if(e.done!==0||e.pct!==0) throw new Error('empty')"
 
 echo "--- smoke: $pass passed, $fail failed ---"
 exit $((fail>0))

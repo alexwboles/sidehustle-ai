@@ -112,16 +112,18 @@
   function showPlan(hustle) {
     const done = loadJSON(LS_PLAN + "." + hustle.id, {});
     $("planFor").textContent = "· " + hustle.name;
-    $("planWeeks").innerHTML = launchPlan(hustle).map(w =>
-      "<div class='week'><h4><span>Week " + w.week + "</span>" + escapeHtml(w.title) + "</h4><ul>" +
+    const prog = planProgress(hustle, done);
+    $("planWeeks").innerHTML = launchPlan(hustle).map((w, wi) =>
+      "<div class='week'><h4><span>Week " + w.week + "</span>" + escapeHtml(w.title) +
+      "<span class='wpct'>" + prog.weeks[wi].done + "/" + prog.weeks[wi].total + "</span></h4>" +
+      "<div class='wbar'><i style='width:" + prog.weeks[wi].pct + "%'></i></div><ul>" +
       w.tasks.map((t, i) => {
         const id = w.week + "-" + i, d = !!done[id];
         return "<li><label class='" + (d ? "done" : "") + "'><input type='checkbox' data-id='" + id + "'" +
           (d ? " checked" : "") + "><span>" + escapeHtml(t) + "</span></label></li>";
       }).join("") + "</ul></div>").join("");
-    const total = launchPlan(hustle).reduce((s, w) => s + w.tasks.length, 0);
-    const n = Object.values(done).filter(Boolean).length;
-    $("planProgress").textContent = n + " of " + total + " tasks complete";
+    $("planProgress").textContent = prog.done + " of " + prog.total + " tasks complete (" + prog.pct + "%)";
+    $("planFill").style.width = prog.pct + "%";
     $("plan").classList.remove("hidden");
     $("plan").scrollIntoView({ behavior: "smooth", block: "start" });
     $("planWeeks").querySelectorAll("input").forEach(cb =>
@@ -144,6 +146,11 @@
     const hs = $("incHustle");
     if (hs && !hs.options.length) {
       hs.innerHTML = "<option value=''>No hustle tagged</option>" +
+        HUSTLES.map(h => "<option value='" + h.id + "'>" + escapeHtml(h.name) + "</option>").join("");
+    }
+    const es = $("expHustle");
+    if (es && !es.options.length) {
+      es.innerHTML = "<option value=''>No hustle tagged</option>" +
         HUSTLES.map(h => "<option value='" + h.id + "'>" + escapeHtml(h.name) + "</option>").join("");
     }
     // analytics strip
@@ -176,13 +183,14 @@
       "<span class='muted'>" + monthLabel(m.month) + " · " + m.count + " entr" +
       (m.count === 1 ? "y" : "ies") + "</span></li>").join("")
       : "<li class='muted'>Monthly totals will appear here once you log income.</li>";
-    // earnings by hustle
-    const byH = earningsByHustle(entries, { HUSTLES });
+    // net profit by hustle: hustle-tagged income minus hustle-tagged expenses
+    const byH = profitByHustle(entries, expenses, { HUSTLES });
     $("hustleList").innerHTML = byH.length ? byH.map(r =>
-      "<li><span><strong>" + money(r.total) + "</strong></span> " +
-      "<span class='muted'>" + escapeHtml(r.name) + " · " + r.count + " entr" +
+      "<li><span><strong class='" + (r.net < 0 ? "neg" : "") + "'>" + money(r.net) + "</strong> net</span> " +
+      "<span class='muted'>" + escapeHtml(r.name) + " · " + money(r.income) + " in − " +
+      money(r.expenses) + " out · " + r.count + " entr" +
       (r.count === 1 ? "y" : "ies") + "</span></li>").join("")
-      : "<li class='muted'>Tag income with a hustle to see which one pays best.</li>";
+      : "<li class='muted'>Tag income and expenses with a hustle to see which one profits most.</li>";
     // expenses + net profit
     const np = netProfit(entries, expenses, goal);
     $("netLine").textContent = expenses.length || entries.length
@@ -190,9 +198,13 @@
         money(np.net) + " net profit" +
         (np.goal > 0 ? (np.remaining > 0 ? " — " + money(np.remaining) + " to goal" : " — net goal hit!") : "")
       : "No expenses logged yet.";
+    const hname2 = {};
+    HUSTLES.forEach(h => { hname2[h.id] = h.name; });
     $("expenseList").innerHTML = expenses.length ? expenses.map((e, i) =>
       "<li><span><strong>−" + money(e.amount) + "</strong> <span class='muted'>" +
-      escapeHtml(e.date) + (e.note ? " · " + escapeHtml(e.note) : "") + "</span></span>" +
+      escapeHtml(e.date) + (e.note ? " · " + escapeHtml(e.note) : "") +
+      (e.hustleId && hname2[e.hustleId] ? " · <em>" + escapeHtml(hname2[e.hustleId]) + "</em>" : "") +
+      "</span></span>" +
       "<button class='del' data-expdel='" + i + "'>Remove</button></li>").join("")
       : "<li class='muted'>No expenses logged yet.</li>";
     $("expenseList").querySelectorAll("[data-expdel]").forEach(b =>
@@ -210,6 +222,12 @@
         ? money(rr.monthTotal) + " this month · " + money(rr.perDay) + "/day pace"
         : "Log income to see your pace toward the goal.";
     $("runRate").className = "runrate" + (rr.goal > 0 ? (rr.onTrack ? " on" : " off") : "");
+    // tax set-aside: reserve a slice of net profit for taxes
+    const rate = Math.max(0, Math.min(100, parseFloat($("taxRate").value) || 0));
+    const tr = taxReserve(np.net, rate);
+    $("taxLine").textContent = np.net > 0 && rate > 0
+      ? "Set aside " + money(tr.amount) + " (" + rate + "% of net) for taxes — keep " + money(tr.afterTax) + " spendable."
+      : "";
   }
 
   function monthLabel(ym) {
@@ -234,6 +252,7 @@
     $("matchBtn").addEventListener("click", findMatches);
     $("sortSel").addEventListener("change", () => { sortBy = $("sortSel").value; renderRanked(); });
     $("goal").addEventListener("input", renderIncome);
+    $("taxRate").addEventListener("input", renderIncome);
     $("exportCsvBtn").addEventListener("click", () =>
       downloadCSV("sidehustle-income.csv", incomeCSV(loadJSON(LS_INCOME, []))));
     $("logBtn").addEventListener("click", () => {
@@ -252,13 +271,14 @@
       if (!(amt > 0)) { $("expAmt").focus(); return; }
       const a = loadJSON(LS_EXP, []);
       a.unshift({ amount: Math.round(amt * 100) / 100, note: $("expNote").value.trim(),
+        hustleId: $("expHustle").value || "",
         date: new Date().toISOString().slice(0, 10) });
       saveJSON(LS_EXP, a);
       $("expAmt").value = ""; $("expNote").value = "";
       renderIncome();
     });
     $("exportExpBtn").addEventListener("click", () =>
-      downloadCSV("sidehustle-expenses.csv", expenseCSV(loadJSON(LS_EXP, []))));
+      downloadCSV("sidehustle-expenses.csv", expenseCSV(loadJSON(LS_EXP, []), { HUSTLES })));
     $("brainBtn").addEventListener("click", async () => {
       const key = $("apiKey").value.trim();
       if (!key) { $("aiMsg").textContent = "Paste your OpenAI API key first (optional)."; return; }

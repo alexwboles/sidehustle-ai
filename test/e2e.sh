@@ -150,5 +150,43 @@ flow "end-to-end: expenses + tagged income -> net profit, by-hustle, analytics" 
   if(exp.total!==100||exp.count!==2) throw new Error('expenseTotals: '+JSON.stringify(exp));
 "
 
+flow "sweep-2: net profit per hustle, tax reserve, plan pacing" "
+  const L=require('./js/logic.js'); const B=require('./js/hustlebank.js');
+  const income=[
+    {date:'2026-10-01',amount:400,hustleId:'freelance-writing'},
+    {date:'2026-10-05',amount:150,hustleId:'freelance-writing'},
+    {date:'2026-10-06',amount:300,hustleId:'mobile-detailing'}];
+  const expenses=[
+    {date:'2026-10-02',amount:60,hustleId:'freelance-writing',note:'software'},
+    {date:'2026-10-07',amount:90,hustleId:'mobile-detailing',note:'supplies'},
+    {date:'2026-10-08',amount:25,note:'untagged'}];
+  const pb=L.profitByHustle(income,expenses,B);
+  if(pb.length!==2) throw new Error('two tagged hustles');
+  const fw=pb.find(r=>r.hustleId==='freelance-writing');
+  const md=pb.find(r=>r.hustleId==='mobile-detailing');
+  if(!fw||fw.net!==490||fw.income!==550||fw.expenses!==60) throw new Error('writing: '+JSON.stringify(fw));
+  if(!md||md.net!==210) throw new Error('detailing: '+JSON.stringify(md));
+  if(pb[0].hustleId!=='freelance-writing') throw new Error('best net first');
+  // tax reserve on the combined net
+  const net=L.netProfit(income,expenses,2000).net;
+  if(net!==675) throw new Error('net: '+net);
+  const tr=L.taxReserve(net,25);
+  if(tr.amount!==168.75||tr.afterTax!==506.25) throw new Error('tax: '+JSON.stringify(tr));
+  // launch plan pacing for a real bank hustle
+  const hustle=B.HUSTLES.find(h=>h.id==='freelance-writing');
+  const done={'1-0':true,'1-1':true,'3-0':true};
+  const p=L.planProgress(hustle,done);
+  if(p.done!==3||p.total<=0) throw new Error('plan totals: '+p.done+'/'+p.total);
+  if(p.weeks[0].done!==2||p.weeks[2].done!==1||p.weeks[1].done!==0) throw new Error('per-week: '+JSON.stringify(p.weeks.map(w=>w.done)));
+  // UI wiring for the new surfaces
+  const fs=require('fs');
+  const html=fs.readFileSync('index.html','utf8');
+  const app=fs.readFileSync('js/app.js','utf8');
+  if(html.indexOf('expHustle')<0) throw new Error('expHustle select missing');
+  if(html.indexOf('taxRate')<0||html.indexOf('taxLine')<0) throw new Error('tax UI missing');
+  if(html.indexOf('planFill')<0) throw new Error('planFill bar missing');
+  if(app.indexOf('wbar')<0) throw new Error('week bars missing');
+"
+
 echo "--- e2e: $pass passed, $fail failed ---"
 exit $((fail>0))

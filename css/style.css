@@ -277,3 +277,14 @@ footer { text-align: center; color: var(--muted); font-size: 0.85rem; padding-bo
 .analytics { font-size: 0.92rem; color: var(--ink-soft); margin: 0.35rem 0 0; }
 .entries em { font-style: normal; background: var(--accent-soft); color: var(--accent-deep);
   padding: 0.05rem 0.45rem; font-size: 0.78rem; font-weight: 700; }
+
+/* ---------- sweep-2: plan week bars, tax row, net negatives ---------- */
+.goalbar.planbar { margin: 0 0 1rem; }
+.week h4 { display: flex; align-items: baseline; gap: .6rem; }
+.week h4 .wpct { margin-left: auto; font-size: .8rem; color: var(--muted); font-weight: 600; }
+.wbar { height: 8px; background: var(--line); margin: .3rem 0 .6rem; }
+.wbar i { display: block; height: 100%; background: #0f766e; transition: width .25s; }
+.taxrow { align-items: center; gap: .6rem; margin-top: .4rem; }
+.taxrow input { max-width: 90px; }
+#taxLine:empty { display: none; }
+.neg { color: #b91c1c; }

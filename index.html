@@ -90,6 +90,7 @@
   <section class="card hidden" id="plan">
     <p class="kicker">Step 3 · Launch sequence</p>
     <h2>30-day launch plan <span id="planFor" class="muted"></span></h2>
+    <div class="goalbar planbar"><i id="planFill"></i></div>
     <div id="planWeeks" class="weeks"></div>
     <p class="plan-ledger"><span id="planProgress"></span></p>
   </section>
@@ -124,8 +125,14 @@
     <h3>Expenses</h3>
     <p class="muted">Track what each hustle costs you — supplies, fees, ads. Net profit is what counts toward your goal.</p>
     <p class="income-line"><strong id="netLine"></strong></p>
+    <div class="row taxrow">
+      <label for="taxRate" class="muted">Tax set-aside %</label>
+      <input id="taxRate" type="number" min="0" max="100" value="25" aria-label="Tax set-aside percent">
+    </div>
+    <p class="muted" id="taxLine"></p>
     <div class="row">
       <input id="expAmt" type="number" min="0" step="0.01" placeholder="Amount $" aria-label="Expense amount">
+      <select id="expHustle" aria-label="Expense hustle tag"></select>
       <input id="expNote" type="text" placeholder="Note (e.g. domain renewal)" maxlength="60" aria-label="Expense note">
       <button id="logExpBtn">Log expense</button>
       <button id="exportExpBtn">Export CSV</button>

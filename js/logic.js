@@ -149,14 +149,67 @@ function netProfit(incomeEntries, expenseEntries, goal) {
   };
 }
 
-/** CSV export of the expense log: Date,Amount,Note. */
-function expenseCSV(entries) {
+/** CSV export of the expense log: Date,Amount,Hustle,Note. */
+function expenseCSV(entries, bank) {
+  const nameOf = {};
+  ((bank && bank.HUSTLES) || []).forEach(h => { nameOf[h.id] = h.name; });
   const q = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-  const lines = [["Date", "Amount", "Note"].map(q).join(",")];
+  const lines = [["Date", "Amount", "Hustle", "Note"].map(q).join(",")];
   (entries || []).forEach(e => {
-    lines.push([e.date || "", Number(e.amount) || 0, e.note || ""].map(q).join(","));
+    lines.push([e.date || "", Number(e.amount) || 0, nameOf[e.hustleId] || "", e.note || ""].map(q).join(","));
   });
   return lines.join("\n");
+}
+
+/** Net profit attributed per hustle: hustle-tagged income minus hustle-tagged
+ *  expenses. Returns [{ hustleId, name, income, expenses, net, count }],
+ *  best net first. Untagged entries are skipped (same rule as earningsByHustle). */
+function profitByHustle(incomeEntries, expenseEntries, bank) {
+  const map = {};
+  const ensure = (id) => { if (!map[id]) map[id] = { income: 0, expenses: 0, count: 0 }; return map[id]; };
+  (incomeEntries || []).forEach(e => {
+    const id = e.hustleId || ""; if (!id) return;
+    const r = ensure(id);
+    r.income += Number(e.amount) || 0; r.count++;
+  });
+  (expenseEntries || []).forEach(e => {
+    const id = e.hustleId || ""; if (!id) return;
+    ensure(id).expenses += Number(e.amount) || 0;
+  });
+  const nameOf = {};
+  ((bank && bank.HUSTLES) || []).forEach(h => { nameOf[h.id] = h.name; });
+  const r2 = n => Math.round(n * 100) / 100;
+  return Object.keys(map).map(k => ({
+    hustleId: k, name: nameOf[k] || k,
+    income: r2(map[k].income), expenses: r2(map[k].expenses),
+    net: r2(map[k].income - map[k].expenses), count: map[k].count
+  })).sort((a, b) => b.net - a.net);
+}
+
+/** Tax set-aside: what to reserve from net profit for taxes at a given rate.
+ *  Returns { rate, amount, afterTax }. Never negative. */
+function taxReserve(net, ratePct) {
+  const rate = Math.max(0, Math.min(100, Number(ratePct) || 0));
+  const n = Math.max(0, Number(net) || 0);
+  const amount = Math.round(n * rate) / 100;
+  return { rate: rate, amount: amount, afterTax: Math.round((n - amount) * 100) / 100 };
+}
+
+/** Launch-plan progress from the saved done-map: overall + per-week bars.
+ *  doneMap: { "weekIdx-taskIdx": true }. Unchecked entries may be false. */
+function planProgress(hustle, doneMap) {
+  const weeks = launchPlan(hustle);
+  let total = 0, done = 0;
+  const perWeek = weeks.map(w => {
+    const ids = w.tasks.map((_, i) => w.week + "-" + i);
+    const d = ids.filter(id => doneMap && doneMap[id]).length;
+    total += ids.length; done += d;
+    return {
+      week: w.week, title: w.title, total: ids.length, done: d,
+      pct: ids.length ? Math.round(d / ids.length * 100) : 0
+    };
+  });
+  return { total: total, done: done, pct: total ? Math.round(done / total * 100) : 0, weeks: perWeek };
 }
 
 /** Earnings attributed per hustle: [{ hustleId, name, total, count }], biggest first.
@@ -209,5 +262,5 @@ function incomeAnalytics(entries, refDate) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { overlap, scoreHustles, projectedMonthly, launchPlan, incomeTotals, validateProfile, incomeCSV, monthlyTotals, sortRanked, incomeRunRate, expenseTotals, netProfit, expenseCSV, earningsByHustle, incomeAnalytics };
+  module.exports = { overlap, scoreHustles, projectedMonthly, launchPlan, incomeTotals, validateProfile, incomeCSV, monthlyTotals, sortRanked, incomeRunRate, expenseTotals, netProfit, expenseCSV, earningsByHustle, incomeAnalytics, profitByHustle, taxReserve, planProgress };
 }
